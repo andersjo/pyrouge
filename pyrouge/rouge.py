@@ -6,8 +6,10 @@ import logging
 from os import mkdir
 import os
 import re
-from subprocess import check_output
+from subprocess import check_output, CalledProcessError
 from tempfile import mkdtemp
+import sys
+
 
 class Rouge155(object):
     def __init__(self, rouge_home, n_words=None, stem=False, keep_files=False):
@@ -64,7 +66,14 @@ class Rouge155(object):
         try:
             self._write_config(references, summary)
             output = self._run_rouge()
+            output = output.decode("utf-8")
             return self._parse_output(output)
+        except CalledProcessError as e:
+            print("Rouge returned a non-zero error code. Output was: ", file=sys.stderr)
+            print("BEGIN OUTPUT ", file=sys.stderr)
+            print(e.output, file=sys.stderr)
+            print("END OUTPUT", file=sys.stderr)
+            raise e
         finally:
             self._cleanup()
 
@@ -104,9 +113,9 @@ class Rouge155(object):
 
         options.append(os.path.join(self._config_dir, "settings.xml"))
 
-        options = map(str, options)
+        options = list(map(str, options))
         logging.info("Running ROUGE with options {}".format(" ".join(options)))
-
+        # print([self._rouge_bin] + list(options))
         return check_output([self._rouge_bin] + options)
 
     def _parse_output(self, output):

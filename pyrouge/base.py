@@ -1,3 +1,8 @@
+from os.path import dirname
+from pathlib import Path
+
+ROUGE_EVAL_HOME = str(Path(dirname(__file__)) / '../tools/ROUGE-1.5.5')
+
 class Doc(object):
     def __init__(self, id, sents=[]):
         self.id = id

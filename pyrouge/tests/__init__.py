@@ -1,10 +1,10 @@
 import os
-from pyrouge.base import Doc
+from pyrouge.base import Doc, ROUGE_EVAL_HOME
 
 __author__ = 'anders'
 
 def rouge_home():
-    return os.getenv("ROUGE_EVAL_HOME", "/Users/anders/code/diogenes/tools/rouge-1.5.5-dist/ROUGE-1.5.5")
+    return os.getenv("ROUGE_EVAL_HOME", ROUGE_EVAL_HOME)
 
 
 SL2003_DIR = "/users/anders/code/pyrouge/data/SL2003"
