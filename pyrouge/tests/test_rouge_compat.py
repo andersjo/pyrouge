@@ -26,8 +26,9 @@ class TestRougeCompat(TestCase):
         system = sl2003_summary("systems", "SL.P.10.R.11.SL062003-01.html")
         models = [sl2003_summary("models", "SL.P.10.R.{}.SL062003-01.html".format(c))
                   for c in "ABCD"]
+        models = {doc.id: doc.sents for doc in models}
 
-        results = r.score_summary(system, models)
+        results = r.score_summary(system.sents, models, system.id)
         expected_columns = set(['rouge_su4_precision', 'rouge_3_f_score_cb', 'rouge_3_f_score_ce', 'rouge_1_precision', 'rouge_su4_f_score', 'rouge_3_recall', 'rouge_3_precision_ce', 'rouge_2_precision_ce', 'rouge_2_precision_cb', 'rouge_2_recall', 'rouge_3_precision_cb', 'rouge_4_f_score_ce', 'rouge_2_precision', 'rouge_1_recall_cb', 'rouge_1_recall_ce', 'rouge_4_f_score_cb', 'rouge_2_recall_cb', 'rouge_su4_f_score_ce', 'rouge_su4_f_score_cb', 'rouge_2_recall_ce', 'rouge_4_precision_cb', 'rouge_4_precision_ce', 'rouge_1_f_score', 'rouge_4_recall_ce', 'rouge_su4_precision_ce', 'rouge_1_recall', 'rouge_4_recall_cb', 'rouge_4_recall', 'rouge_3_recall_cb', 'rouge_3_recall_ce', 'rouge_4_precision', 'rouge_4_f_score', 'rouge_3_f_score', 'rouge_2_f_score_cb', 'rouge_3_precision', 'rouge_2_f_score_ce', 'rouge_su4_recall_cb', 'rouge_su4_precision_cb', 'rouge_su4_recall_ce', 'rouge_1_precision_cb', 'rouge_su4_recall', 'rouge_1_precision_ce', 'rouge_2_f_score', 'rouge_1_f_score_ce', 'rouge_1_f_score_cb'])
         self.assertEqual(set(results.keys()), expected_columns)
         self.assertAlmostEqual(results['rouge_1_f_score'], 0.02857)

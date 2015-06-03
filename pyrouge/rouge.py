@@ -10,9 +10,11 @@ from subprocess import check_output, CalledProcessError
 from tempfile import mkdtemp
 import sys
 
+from pyrouge.base import ROUGE_EVAL_HOME, Doc
+
 
 class Rouge155(object):
-    def __init__(self, rouge_home, n_words=None, stem=False, keep_files=False):
+    def __init__(self, rouge_home=ROUGE_EVAL_HOME, n_words=None, stem=False, keep_files=False):
         self._stem = stem
         self._n_words = n_words
         self._discover_rouge(rouge_home)
@@ -27,32 +29,34 @@ class Rouge155(object):
         if not os.path.exists(self._rouge_data):
             raise "Rouge data dir not found at {}".format(self._rouge_data)
 
-    def _write_summary(self, summary, models_dir):
-        summary_filename = os.path.join(models_dir, summary.id + ".html")
+    def _write_summary(self, summary, peers_dir):
+        summary_filename = os.path.join(peers_dir, summary.id + ".html")
         with codecs.open(summary_filename, 'w', encoding='utf-8') as f:
             f.write(rouge_summary_content(summary.id, summary.sents))
 
         return summary.id + ".html"
 
-    def _write_references(self, references, peers_dir):
+    def _write_references(self, references, models_dir):
         reference_basenames = []
-        for reference in references:
-            reference_filename = os.path.join(peers_dir, reference.id + ".html")
-            reference_basenames.append(reference.id + ".html")
+        for reference_id, reference in references.items():
+            reference_filename = os.path.join(models_dir, reference_id + ".html")
+            reference_basenames.append(reference_id + ".html")
             with codecs.open(reference_filename, 'w', encoding='utf-8') as f:
-                f.write(rouge_summary_content(reference.id, reference.sents))
+                f.write(rouge_summary_content(reference_id, reference))
 
         return reference_basenames
 
     def _write_config(self, references, summary):
         temp_dir = mkdtemp()
         self._config_dir = temp_dir
-        summary_dir = os.path.join(temp_dir, 'models')
-        reference_dir = os.path.join(temp_dir, 'peers')
+        summary_dir = os.path.join(temp_dir, 'peers')
+        reference_dir = os.path.join(temp_dir, 'models')
         mkdir(summary_dir)
         mkdir(reference_dir)
+
         summary_file = self._write_summary(summary, summary_dir)
         reference_files = self._write_references(references, reference_dir)
+
         settings_file = os.path.join(temp_dir, "settings.xml")
         with codecs.open(settings_file, 'w', encoding='utf-8') as f:
             settings_xml = rouge_settings_content("task", reference_dir, reference_files, summary_dir, [summary_file])
@@ -60,11 +64,11 @@ class Rouge155(object):
 
         logging.info("Writing ROUGE configuration to {}".format(temp_dir))
 
-    def score_summary(self, summary, references):
+    def score_summary(self, summary, references, summary_id='A'):
         """``summary'' is a system-generated summary.
         ``references'' is a list of human-made reference summaries"""
         try:
-            self._write_config(references, summary)
+            self._write_config(references, Doc(summary_id, summary))
             output = self._run_rouge()
             output = output.decode("utf-8")
             return self._parse_output(output)
@@ -77,15 +81,14 @@ class Rouge155(object):
         finally:
             self._cleanup()
 
-    def score_summaries(self, summaries, references_list):
-        """``summaries'' is a dictionary of system-name, summary pairs.
-        ``references_list'' is a list of lists, each containing human-made reference summaries"""
-        #assert len(summaries) == len(references_list)
-        scores = []
-        for system_name, references in zip(summaries.keys(), references_list):
-
-            scores.append(self.score_summary(summary, references))
-        pass
+    # def score_summaries(self, summaries, references_list):
+    #     """``summaries'' is a dictionary of system-name, summary pairs.
+    #     ``references_list'' is a list of lists, each containing human-made reference summaries"""
+    #     #assert len(summaries) == len(references_list)
+    #     scores = []
+    #     for system_name, references in zip(summaries.keys(), references_list):
+    #         scores.append(self.score_summary(, references))
+    #     pass
 
     #def score_system(self, system):
     #    pass
@@ -147,7 +150,7 @@ def rouge_summary_content(title, sents):
     for sent_i, sent in enumerate(sents, 1):
         # $line=~/^<a name=\"[0-9]+\">\[([0-9]+)\]<\/a>\s+<a href=\"\#[0-9]+\" id=[0-9]+>([^<]+)/o) {
 
-        elem = u"<a name=\"{i}\">[{i}]</a> <a href=\"#{i}\" id={i}>{text}</a>".format(i=sent_i, text=sent.text)
+        elem = u"<a name=\"{i}\">[{i}]</a> <a href=\"#{i}\" id={i}>{text}</a>".format(i=sent_i, text=" ".join(sent))
         sent_elems.append(elem)
 
     doc = u"""<html>
